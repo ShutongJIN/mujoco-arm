@@ -412,7 +412,6 @@ class SimulatorVelCtrl: #a communication wrapper for MuJoCo
             twist_ee = self.twist_ee
             is_cmd_received = False
             keypressed = cv2.waitKey(1)
-            print("waiting for keypressed:")
             
             if keypressed == 27:
                 break
@@ -511,9 +510,10 @@ class SimulatorVelCtrl: #a communication wrapper for MuJoCo
             self.lock.release()
             
             self.show_image(title)
-            #print("camera output ends")
+            #Added on 20230322
+            # self.show_image(title2)
+            #End
         cv2.destroyAllWindows()
-        #print("camera output destroys")
 
     def pick_and_place(self, gqtgt):
         time.sleep(3)
@@ -679,28 +679,13 @@ class SimulatorVelCtrl: #a communication wrapper for MuJoCo
         image_data = []  
         self.lockcv2.acquire()
         if len(self.queue_img) != 0:
-            image_data = self.queue_img.popleft() 
+            image_data = self.queue_img.popleft()
+
         self.lockcv2.release()
         if len(image_data) != 0:
-            div_near = 1/(znear*self.model.stat.extent)
-            div_far = 1/(zfar*self.model.stat.extent)
-            s = div_far-div_near
-            image_data = 1/(s*image_data + div_near)
-            
-            #limit measurement range
-            dplim_upper = 0.7
-            dplim_lower = 0.16
-            image_data[image_data<=dplim_lower]=0
-            image_data[image_data>=dplim_upper]=1.0
-            
-            #add noise
-            #image_noise_1=stats.distributions.norm.rvs(0,0.00005,size=image_data.shape)
-            #image_noise_2=np.random.normal(0,0.00015,size=image_data.shape)
-            #image_data = image_data + image_noise_1 + image_noise_2
-            norm_image = cv2.normalize(image_data, None, alpha = 0, beta = 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-            #print(norm_image)            
+            norm_image = cv2.normalize(image_data, None, alpha = 0, beta = 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)        
             cv2.imshow(title, norm_image)
-            #cv2.imshow(title, image_data)
+
 
     def start(self):
         ct = 0       
@@ -716,16 +701,44 @@ class SimulatorVelCtrl: #a communication wrapper for MuJoCo
             self.lock1.release()
             self.viewer.render()
             if ct%17 == 1:
-                self.offscreen.render(width=424, height=240, camera_id=0)
+                self.offscreen.render(width=424, height=240, camera_id=0) #modified on 20230324
                 a=self.offscreen.read_pixels(width=424, height=240, depth=True)
                 rgb_img = a[0]
                 rgb_img = rgb_img[:, ::-1, ::-1]
                 depth_img = a[1]
                 depth_img = depth_img[:, ::-1]
                 self.lockcv2.acquire()
-                self.queue_img.append(depth_img)
+                #original
+                #self.queue_img.append(depth_img)
+                #modified on 20230324
+                self.queue_img.append(rgb_img)
                 self.lockcv2.release()
-            
+
+# only for reference
+# def render_opencv(height=height, width=width):
+#     # Two cameras exist in simulation
+#     for camera_index in [0, 1]:
+#         vieweroff.render(width, height, camera_id=camera_index)
+#         rgb, depth = vieweroff.read_pixels(width, height, depth=True, segmentation=False)
+#         bgr = np.flipud(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+#         distorted_bgr = add_distortion(bgr)
+#         cv2.imshow(f'camera{camera_index} color', distorted_bgr)
+
+#         # Detecting camera pose with end-effector camera
+#         if camera_index == 1:
+#             # Grayscale image
+#             distorted_bw = cv2.cvtColor(distorted_bgr, cv2.COLOR_BGR2GRAY)
+#             detections = at_detector.detect(
+#                 distorted_bw, estimate_tag_pose=True, camera_params=intrinsics, tag_size=0.17)
+#             print("--------------------------")
+#             print(f"Tag Pose from camera: {detections[0].pose_t}, {detections[0].pose_R}")
+
+#         cv2.normalize(np.flipud(depth), depth, 0, 1, cv2.NORM_MINMAX)
+#         cv2.imshow(f'camera{camera_index} depth', add_distortion(depth))
+
+#     cv2.waitKey(1)
+
+
 '''
 convert a unit quaternion to angle/axis representation
 '''                                                                                                            
