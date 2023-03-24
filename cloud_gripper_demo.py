@@ -170,7 +170,8 @@ class SimulatorVelCtrl: #a communication wrapper for MuJoCo
         site.set('size', '0.02 0.0001')
         site.set('rgba', '0 1 0 1')
         site.set('type', 'cylinder')
-        site.set('pos', '{} {} {}'.format(-0.1,-0.25,size_table[2]))
+        #site.set('pos', '{} {} {}'.format(-0.1,-0.25,size_table[2])) #original
+        site.set('pos', '{} {} {}'.format(0,0,0))
         
         #table1 legs                
         geom1 = ET.SubElement(obj, "geom")
